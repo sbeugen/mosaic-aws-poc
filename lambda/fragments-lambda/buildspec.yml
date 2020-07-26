@@ -12,3 +12,4 @@ artifacts:
   type: zip
   files:
     - lambda/fragments-lambda/template-export.yml
+  discard-paths: yes
