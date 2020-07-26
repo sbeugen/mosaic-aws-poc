@@ -24,7 +24,7 @@ Resources:
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
-      RoleName: !Sub 'mosaic-aws-poc-code-build-role'
+      RoleName: 'mosaic-aws-poc-code-build-role'
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -37,7 +37,7 @@ Resources:
   CodeBuildRolePolicies:
     Type: AWS::IAM::Policy
     Properties:
-      PolicyName: !Sub 'mosaic-aws-poc-code-build-base-policy'
+      PolicyName: 'mosaic-aws-poc-code-build-base-policy'
       PolicyDocument:
         Version: '2012-10-17'
         Statement:
@@ -332,3 +332,96 @@ Resources:
               InputArtifacts:
                 - Name: SourceArtifact
               RunOrder: 1
+
+  ### Resources needed for fragments-lambda deployment
+  FragmentsLambdaCodeBuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+        Packaging: zip
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:2.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: FRAGMENT_BUCKET_NAME
+            Value: !Ref FragmentsS3Bucket
+      Name: 'mosaic-aws-poc-fragments-lambda'
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: 'lambda/fragments-lambda/buildspec.yml'
+  FragmentsLambdaPipeline:
+    DependsOn:
+      - CodePipelineTrustRole
+      - BuildIntegrationS3Bucket
+      - FragmentsLambdaCodeBuildProject
+      - CloudFormationTrustRole
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      ArtifactStore:
+        Type: S3
+        Location: !Ref BuildIntegrationS3Bucket
+      Name: 'fragments-lambda-pipeline'
+      RoleArn: !GetAtt 'CodePipelineTrustRole.Arn'
+      Stages:
+        - Name: GithubSource
+          Actions:
+            - Name: FetchSource
+              ActionTypeId:
+                Category: Source
+                Provider: GitHub
+                Owner: ThirdParty
+                Version: 1
+              Configuration:
+                Owner: !Ref GitHubOwner
+                Repo: !Ref GitHubRepo
+                Branch: 'master'
+                OAuthToken: !Ref GitHubToken
+              OutputArtifacts:
+                - Name: SourceArtifact
+        - Name: Build
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref FragmentsLambdaCodeBuildProject
+              InputArtifacts:
+                - Name: SourceArtifact
+              OutputArtifacts:
+                - Name: BuildArtifact
+              RunOrder: 1
+        - Name: Deploy
+          Actions:
+            - Name: GenerateChangeSet
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              InputArtifacts:
+                - Name: BuildArtifact
+              RunOrder: 1
+              Configuration:
+                ActionMode: CHANGE_SET_REPLACE
+                Capabilities: CAPABILITY_NAMED_IAM
+                ChangeSetName: pipeline-changeset
+                RoleArn: !GetAtt 'CloudFormationTrustRole.Arn'
+                StackName: 'mosaic-aws-poc'
+                TemplatePath: BuildArtifact::outputtemplate.yml
+            - Name: ExecuteChangeSet
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Provider: CloudFormation
+                Version: 1
+              RunOrder: 2
+              Configuration:
+                ActionMode: CHANGE_SET_EXECUTE
+                ChangeSetName: pipeline-changeset
+                StackName: 'mosaic-aws-poc'
