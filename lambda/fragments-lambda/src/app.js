@@ -3,7 +3,7 @@ const AWS = require("aws-sdk");
 
 const app = express();
 
-const fragmentBundle = (fragment) => `<https://${process.env.FRAGMENT_BUCKET_NAME}.s3.${AWS.config.region}.amazonaws.com/${fragment}/bundle.js>; rel="fragment-script"`
+const fragmentBundle = (fragment) => `<https://${process.env.FRAGMENTS_BUCKET_NAME}.s3.${AWS.config.region}.amazonaws.com/${fragment}/bundle.js>; rel="fragment-script"`
 
 app.get("/:fragment", async (req, res) => {
   const fragment = req.params.fragment

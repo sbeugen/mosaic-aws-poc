@@ -3,7 +3,7 @@ Description: tailor-lambda
 
 Transform: AWS::Serverless-2016-10-31
 Parameters:
-  FragmentBucketName:
+  FragmentsBucketName:
     Description: Name of the s3 bucket holding the fragments
     Type: String
 
@@ -23,7 +23,7 @@ Resources:
             BucketName: "*"
       Environment:
         Variables:
-          FRAGMENT_BUCKET_NAME: !Ref FragmentBucketName
+          FRAGMENTS_BUCKET_NAME: !Ref FragmentsBucketName
       Events:
         Api:
           Type: Api

@@ -347,11 +347,14 @@ Resources:
         EnvironmentVariables:
           - Name: FRAGMENT_BUCKET_NAME
             Value: !Ref FragmentsS3Bucket
+          - Name: BUILD_INTEGRATION_S3_BUCKET_NAME
+            Value: !Ref BuildIntegrationS3Bucket
       Name: 'mosaic-aws-poc-fragments-lambda'
       ServiceRole: !GetAtt CodeBuildRole.Arn
       Source:
         Type: CODEPIPELINE
         BuildSpec: 'lambda/fragments-lambda/buildspec.yml'
+
   FragmentsLambdaPipeline:
     DependsOn:
       - CodePipelineTrustRole
