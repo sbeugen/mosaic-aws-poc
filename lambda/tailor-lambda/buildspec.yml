@@ -1,0 +1,13 @@
+version: 0.2
+phases:
+  install:
+    commands:
+      - npm install
+  build:
+    commands:
+      # Use AWS SAM to package the application by using AWS CloudFormation
+      - aws cloudformation package --template template.yml --s3-bucket $TAILOR_LAMBDA_S3_BUCKET_NAME --output-template template-export.yml
+artifacts:
+  type: zip
+  files:
+    - template-export.yml

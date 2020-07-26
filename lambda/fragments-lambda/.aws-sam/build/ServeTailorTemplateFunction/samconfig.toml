@@ -1,0 +1,12 @@
+version = 0.1
+[default]
+[default.deploy]
+[default.deploy.parameters]
+stack_name = "fragments-lambda"
+s3_bucket = "aws-sam-cli-managed-default-samclisourcebucket-1i4n3b7ti0sxk"
+s3_prefix = "fragments-lambda"
+region = "eu-central-1"
+profile = "private"
+confirm_changeset = true
+capabilities = "CAPABILITY_IAM"
+parameter_overrides = "FragmentBucketName=\"less-fragments-eugen\" FragmentBucketUrl=\"https://less-fragments-eugen.s3.eu-central-1.amazonaws.com\""
