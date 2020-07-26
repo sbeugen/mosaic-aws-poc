@@ -417,6 +417,7 @@ Resources:
                 RoleArn: !GetAtt 'CloudFormationTrustRole.Arn'
                 StackName: 'mosaic-aws-poc'
                 TemplatePath: BuildArtifact::template-export.yml
+                ParameterOverrides: !Sub '{"FragmentsBucketName": "${!Ref FragmentsS3Bucket}"}'
             - Name: ExecuteChangeSet
               ActionTypeId:
                 Category: Deploy
