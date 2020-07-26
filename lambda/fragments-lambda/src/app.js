@@ -24,7 +24,7 @@ app.get("/:fragment", async (req, res) => {
 
 const fetchFragmentHtml = async (fragmentName) => {
   const s3 = new AWS.S3({apiVersion: '2006-03-01'});
-  const s3BucketName = process.env.FRAGMENT_BUCKET_NAME;
+  const s3BucketName = process.env.FRAGMENTS_BUCKET_NAME;
 
   return new Promise((resolve, reject) => {
     if (fragmentName === "favicon.ico") resolve();
