@@ -1,0 +1,6 @@
+version: 0.2
+phases:
+  install:
+    commands:
+      - cd mosaic-templates
+      - aws s3 cp --recursive --acl public-read ./templates s3://${TEMPLATE_BUCKET_NAME}/

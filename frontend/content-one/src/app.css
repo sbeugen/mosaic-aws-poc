@@ -1,0 +1,10 @@
+h1 {
+    color: red;
+    text-align: center;
+}
+
+#wrapper {
+    width: 100%;
+    display: grid;
+    justify-items: center;
+}

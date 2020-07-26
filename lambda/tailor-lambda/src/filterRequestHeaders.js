@@ -4,8 +4,6 @@ const ACCEPT_HEADERS = [
   "user-agent",
   "x-request-uri",
   "x-request-host",
-  "x-theme", // custom header for theming,
-  "x-feature"
 ];
 
 module.exports = (attributes, request) => {

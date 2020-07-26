@@ -1,0 +1,179 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'CI/CD setup for mosaic-aws-poc'
+Parameters:
+  GitHubOwner:
+    Default: 'sbeugen'
+    Description: The owner or organization for the GitHub project
+    Type: String
+  GitHubRepo:
+    Default: 'mosaic-aws-poc'
+    Description: The GitHub repository name
+    Type: String
+  GitHubToken:
+    Description: OAuth-Token for GitHub-Access
+    Type: String
+
+Resources:
+  ### Needed Resources across multiple pipelines
+  CodeBuildRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub 'mosaic-aws-poc-code-build-role'
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action:
+              - sts:AssumeRole
+  CodeBuildRolePolicies:
+    Type: AWS::IAM::Policy
+    Properties:
+      PolicyName: !Sub 'mosaic-aws-poc-code-build-base-policy'
+      PolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Resource: '*'
+            Action:
+              - s3:*
+              - logs:*
+              - sts:AssumeRole
+      Roles:
+        - !Ref CodeBuildRole
+  CloudFormationTrustRole:
+    Description: Creating service role in IAM for AWS CloudFormation
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - cloudformation.amazonaws.com
+      Path: /
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - codestar:*
+                  - s3:*
+                  - lambda:*
+                  - dynamodb:*
+                  - kinesis:*
+                  - cloudformation:*
+                  - sns:*
+                  - config:*
+                  - iam:*
+                  - apigateway:*
+                  - cloudwatch:*
+                Effect: Allow
+                Resource: '*'
+          PolicyName: 'mosaic-aws-poc-cloudformation-policy'
+      RoleName: 'mosaic-aws-poc-cloudformation-role'
+    Type: AWS::IAM::Role
+  CodePipelineTrustRole:
+    Description: Creating service role in IAM for AWS CodePipeline
+    Properties:
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action: sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Sid: 1
+      Path: /
+      Policies:
+        - PolicyDocument:
+            Statement:
+              - Action:
+                  - s3:*
+                  - codebuild:*
+                  - cloudformation:*
+                Effect: Allow
+                Resource: '*'
+              - Action:
+                  - iam:PassRole
+                Effect: Allow
+                Resource:
+                  - !GetAtt 'CloudFormationTrustRole.Arn'
+          PolicyName: 'mosaic-aws-poc-code-pipeline-policy'
+      RoleName: 'mosaic-aws-poc-code-pipeline-role'
+    Type: AWS::IAM::Role
+
+  ### Resources needed to publish mosaic templates
+  ### S3 Bucket
+  TemplateS3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: 'mosaic-aws-poc-templates'
+
+  ### CodeBuild
+  TemplateCodeBuildProject:
+    DependsOn:
+      - CodeBuildRole
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Artifacts:
+        Type: CODEPIPELINE
+        Packaging: zip
+      Environment:
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/amazonlinux2-x86_64-standard:2.0
+        Type: LINUX_CONTAINER
+        EnvironmentVariables:
+          - Name: TEMPLATE_BUCKET_NAME
+            Value: !Ref TemplateS3Bucket
+      Name: 'mosaic-aws-poc'
+      ServiceRole: !GetAtt CodeBuildRole.Arn
+      Source:
+        Type: CODEPIPELINE
+        BuildSpec: 'mosaic-templates/buildspec.yml'
+
+  ### CodePipeline
+  TemplatePipeline:
+    DependsOn:
+      - CodePipelineTrustRole
+      - TemplateS3Bucket
+      - TemplateCodeBuildProject
+      - CloudFormationTrustRole
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      Name: 'mosaic-aws-poc-template-pipeline'
+      RoleArn: !GetAtt 'CodePipelineTrustRole.Arn'
+      ArtifactStore:
+        Type: S3
+        Location: !Ref TemplateS3Bucket
+      Stages:
+        - Name: GithubSource
+          Actions:
+            - Name: FetchSource
+              ActionTypeId:
+                Category: Source
+                Provider: GitHub
+                Owner: ThirdParty
+                Version: 1
+              Configuration:
+                Owner: !Ref GitHubOwner
+                Repo: !Ref GitHubRepo
+                Branch: 'master'
+                OAuthToken: !Ref GitHubToken
+              OutputArtifacts:
+                - Name: SourceArtifact
+        - Name: Build
+          Actions:
+            - Name: Build
+              ActionTypeId:
+                Category: Build
+                Owner: AWS
+                Provider: CodeBuild
+                Version: 1
+              Configuration:
+                ProjectName: !Ref TemplateCodeBuildProject
+              InputArtifacts:
+                - Name: SourceArtifact
+              RunOrder: 1

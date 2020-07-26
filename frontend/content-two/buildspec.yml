@@ -1,0 +1,13 @@
+version: 0.2
+phases:
+  install:
+    runtime-versions:
+      nodejs: 10
+  build:
+    commands:
+      - cd frontend/content-two
+      - npm install
+      - npm run build
+  post_build:
+    commands:
+      - aws s3 cp --recursive --acl public-read ./build s3://${FRAGMENTS_BUCKET_NAME}/content-two
