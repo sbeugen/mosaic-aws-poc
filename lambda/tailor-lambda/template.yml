@@ -3,13 +3,13 @@ Description: tailor-lambda
 
 Transform: AWS::Serverless-2016-10-31
 Parameters:
-  TemplateBucketName:
+  TemplatesBucketName:
     Description: Name of the s3 bucket holding the templates
     Type: String
 
 Resources:
 
-  ServeTailorTemplateFunction:
+  ServeTailorTemplatesFunction:
     Type: AWS::Serverless::Function
     Properties:
       Handler: index.handler
@@ -23,7 +23,7 @@ Resources:
             BucketName: "*"
       Environment:
         Variables:
-          TEMPLATE_BUCKET_NAME: !Ref TemplateBucketName
+          TEMPLATES_BUCKET_NAME: !Ref TemplatesBucketName
       Events:
         Api:
           Type: Api
