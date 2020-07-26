@@ -6,9 +6,6 @@ Parameters:
   FragmentBucketName:
     Description: Name of the s3 bucket holding the fragments
     Type: String
-  FragmentBucketUrl:
-    Description: Url of the s3 bucket holding the fragments
-    Type: String
 
 Resources:
 
@@ -27,7 +24,6 @@ Resources:
       Environment:
         Variables:
           FRAGMENT_BUCKET_NAME: !Ref FragmentBucketName
-          FRAGMENT_BUCKET_URL: !Ref FragmentBucketUrl
       Events:
         Api:
           Type: Api
