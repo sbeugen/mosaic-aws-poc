@@ -15,6 +15,12 @@ Parameters:
 
 Resources:
   ### Needed Resources across multiple pipelines
+  BuildIntegrationS3Bucket:
+    Type: AWS::S3::Bucket
+    DeletionPolicy: Delete
+    Properties:
+      BucketName: 'mosaic-aws-poc-build-integration'
+
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
@@ -112,12 +118,6 @@ Resources:
     Properties:
       BucketName: 'mosaic-aws-poc-templates'
 
-  TemplateCodePipelineIntegrationS3Bucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Delete
-    Properties:
-      BucketName: 'mosaic-aws-poc-templates-integration'
-
   ### CodeBuild
   TemplateCodeBuildProject:
     DependsOn:
@@ -145,7 +145,7 @@ Resources:
     DependsOn:
       - CodePipelineTrustRole
       - TemplateS3Bucket
-      - TemplateCodePipelineIntegrationS3Bucket
+      - BuildIntegrationS3Bucket
       - TemplateCodeBuildProject
       - CloudFormationTrustRole
     Type: AWS::CodePipeline::Pipeline
@@ -154,7 +154,7 @@ Resources:
       RoleArn: !GetAtt 'CodePipelineTrustRole.Arn'
       ArtifactStore:
         Type: S3
-        Location: !Ref TemplateCodePipelineIntegrationS3Bucket
+        Location: !Ref BuildIntegrationS3Bucket
       Stages:
         - Name: GithubSource
           Actions:
@@ -194,12 +194,6 @@ Resources:
       BucketName: 'mosaic-aws-poc-fragments'
 
   ### Resources needed for content-two frontend project
-  ### S3 Buckets
-  ContentTwoIntegrationS3Bucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Delete
-    Properties:
-      BucketName: 'mosaic-aws-poc-content-two-integration'
 
   ### CodeBuild
   ContentTwoCodeBuildProject:
@@ -229,7 +223,7 @@ Resources:
     DependsOn:
       - CodePipelineTrustRole
       - FragmentsS3Bucket
-      - ContentTwoIntegrationS3Bucket
+      - BuildIntegrationS3Bucket
       - ContentTwoCodeBuildProject
       - CloudFormationTrustRole
     Type: AWS::CodePipeline::Pipeline
@@ -238,7 +232,7 @@ Resources:
       RoleArn: !GetAtt 'CodePipelineTrustRole.Arn'
       ArtifactStore:
         Type: S3
-        Location: !Ref ContentTwoIntegrationS3Bucket
+        Location: !Ref BuildIntegrationS3Bucket
       Stages:
         - Name: GithubSource
           Actions:
@@ -270,12 +264,6 @@ Resources:
               RunOrder: 1
 
   ### Resources needed for content-one frontend project
-  ### S3 Buckets
-  ContentOneIntegrationS3Bucket:
-    Type: AWS::S3::Bucket
-    DeletionPolicy: Delete
-    Properties:
-      BucketName: 'mosaic-aws-poc-content-one-integration'
 
   ### CodeBuild
   ContentOneCodeBuildProject:
@@ -305,7 +293,7 @@ Resources:
     DependsOn:
       - CodePipelineTrustRole
       - FragmentsS3Bucket
-      - ContentOneIntegrationS3Bucket
+      - BuildIntegrationS3Bucket
       - ContentOneCodeBuildProject
       - CloudFormationTrustRole
     Type: AWS::CodePipeline::Pipeline
@@ -314,7 +302,7 @@ Resources:
       RoleArn: !GetAtt 'CodePipelineTrustRole.Arn'
       ArtifactStore:
         Type: S3
-        Location: !Ref ContentOneIntegrationS3Bucket
+        Location: !Ref BuildIntegrationS3Bucket
       Stages:
         - Name: GithubSource
           Actions:
